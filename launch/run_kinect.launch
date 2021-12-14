@@ -1,0 +1,23 @@
+<launch>
+    <!--options: mono, rgbd or inertial  -->
+    <arg name="mode" default="rgbd"/>
+
+    <!-- Run camera driver -->
+    <include file="$(find azure_kinect_ros_driver)/launch/driver.launch">
+        <arg name="depth_mode" value="NFOV_UNBINNED" />
+        <arg name="depth_unit" value="32FC1" />
+        <arg name="color_resolution" value="720P"/>
+        <arg name="fps" value="30"/>
+        <arg name="imu_rate_target" value="200"/>
+    </include>
+
+    <!-- Launch ORB_SLAM3 -->
+    <include file="$(find orb_slam3_ros_wrapper)/launch/orb_slam3.launch">
+        <arg name="mode" value="$(arg mode)"/>
+        <arg name="rgb_topic" value="/rgb/image_raw" />
+        <arg name="depth_topic" value="/depth_to_rgb/image_raw" />
+        <arg name="imu_topic" value="/imu" />
+        <arg name="config_file" value="$(find orb_slam3_ros_wrapper)/config/kinect_config.yaml" />
+        <arg name="camera_base_frame" value="camera_base" />
+    </include>
+</launch>
