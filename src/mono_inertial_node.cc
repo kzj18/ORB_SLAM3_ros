@@ -4,7 +4,7 @@
 *
 */
 
-#include "common.h"
+#include "orb_slam3_ros_wrapper/common.h"
 
 using namespace std;
 

@@ -4,7 +4,7 @@
 *
 */
 
-#include "common.h"
+#include "orb_slam3_ros_wrapper/common.h"
 
 ros::Publisher pose_pub;
 ros::Publisher map_points_pub;

@@ -3,11 +3,11 @@ project(orb_slam3_ros_wrapper)
 
 # Change this to your installation of ORB-SLAM3. Default is ~/
 set(ORB_SLAM3_DIR
-   $ENV{HOME}/ORB_SLAM3
+   /home/marwan/ORB_SLAM3
 )
 
 set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS "-std=c++11")
+set(CMAKE_CXX_FLAGS "-std=c++14")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
 
 find_package (catkin REQUIRED COMPONENTS
@@ -37,12 +37,12 @@ catkin_package (
 )
 
 include_directories(
+   include
+   ${catkin_INCLUDE_DIRS}
    ${ORB_SLAM3_DIR}
    ${ORB_SLAM3_DIR}/include
    ${ORB_SLAM3_DIR}/include/CameraModels
-   ${PROJECT_SOURCE_DIR}/include
    ${EIGEN3_INCLUDE_DIR}
-   ${catkin_INCLUDE_DIRS}
    ${Pangolin_INCLUDE_DIRS}
 )
 
