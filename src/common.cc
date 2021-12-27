@@ -7,6 +7,7 @@
 #include "orb_slam3_ros_wrapper/common.h"
 
 ros::Publisher pose_pub;
+ros::Publisher imap_pub;
 ros::Publisher map_points_pub;
 image_transport::Publisher rendered_image_pub;
 
@@ -24,18 +25,44 @@ void setup_ros_publishers(ros::NodeHandle &node_handler, image_transport::ImageT
 
     map_points_pub = node_handler.advertise<sensor_msgs::PointCloud2>("orb_slam3_ros/map_points", 1);
 
+    imap_pub = node_handler.advertise<orb_slam3_ros_wrapper::imap_input>("/imap_frames", 1);
+    
     rendered_image_pub = image_transport.advertise("orb_slam3_ros/tracking_image", 1);
 }
 
-void publish_ros_pose_tf(cv::Mat Tcw, ros::Time current_frame_time, ORB_SLAM3::System::eSensor sensor_type)
+void publish_ros_pose_tf(cv::Mat Tcw, sensor_msgs::Image msgRGB, sensor_msgs::Image msgD, ros::Time current_frame_time, ORB_SLAM3::System::eSensor sensor_type)
 {
     if (!Tcw.empty())
     {
-        tf::Transform tf_transform = from_orb_to_ros_tf_transform (Tcw);
+        cv::Mat orb_rotation(3, 3, CV_32F);
+        cv::Mat orb_translation(3, 1, CV_32F);
+
+        orb_rotation    = Tcw.rowRange(0, 3).colRange(0, 3);
+        orb_translation = Tcw.rowRange(0, 3).col(3);
+
+        tf::Matrix3x3 tf_camera_rotation(
+            orb_rotation.at<float> (0, 0), orb_rotation.at<float> (0, 1), orb_rotation.at<float> (0, 2),
+            orb_rotation.at<float> (1, 0), orb_rotation.at<float> (1, 1), orb_rotation.at<float> (1, 2),
+            orb_rotation.at<float> (2, 0), orb_rotation.at<float> (2, 1), orb_rotation.at<float> (2, 2)
+        );
+
+        tf::Vector3 tf_camera_translation(orb_translation.at<float> (0), orb_translation.at<float> (1), orb_translation.at<float> (2));
+        tf::Transform tf_transform = tf::Transform(tf_camera_rotation, tf_camera_translation);;
+
+        tf::Stamped<tf::Pose> grasp_tf_pose(tf_transform, current_frame_time, map_frame_id);
+        geometry_msgs::PoseStamped pose_msg;
+        tf::poseStampedTFToMsg(grasp_tf_pose, pose_msg);
+
+        orb_slam3_ros_wrapper::imap_input imap_msg;
+        imap_msg.rgb = msgRGB;
+        imap_msg.depth = msgD;
+        imap_msg.tcw = pose_msg.pose;
+
+        imap_pub.publish(imap_msg);
 
         publish_tf_transform(tf_transform, current_frame_time);
 
-        publish_pose_stamped(tf_transform, current_frame_time);
+        // publish_pose_stamped(tf_transform, current_frame_time);
     }
 }
 

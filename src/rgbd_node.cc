@@ -49,8 +49,8 @@ int main(int argc, char **argv)
 
     ImageGrabber igb(&SLAM);
 
-    message_filters::Subscriber<sensor_msgs::Image> rgb_sub(node_handler, "/camera/rgb/image_raw", 100);
-    message_filters::Subscriber<sensor_msgs::Image> depth_sub(node_handler, "/camera/depth_registered/image_raw", 100);
+    message_filters::Subscriber<sensor_msgs::Image> rgb_sub(node_handler, "/camera/rgb/image_raw", 1);
+    message_filters::Subscriber<sensor_msgs::Image> depth_sub(node_handler, "/camera/depth_registered/image_raw", 1);
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), rgb_sub, depth_sub);
     sync.registerCallback(boost::bind(&ImageGrabber::GrabRGBD,&igb,_1,_2));
@@ -58,6 +58,8 @@ int main(int argc, char **argv)
     pose_pub = node_handler.advertise<geometry_msgs::PoseStamped> ("/orb_slam3_ros/camera", 1);
 
     map_points_pub = node_handler.advertise<sensor_msgs::PointCloud2>("orb_slam3_ros/map_points", 1);
+
+    imap_pub = node_handler.advertise<orb_slam3_ros_wrapper::imap_input>("/imap_frames", 1);
 
     setup_tf_orb_to_ros(ORB_SLAM3::System::RGBD);
 
@@ -99,9 +101,10 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
     // Main algorithm runs here
     cv::Mat Tcw = mpSLAM->TrackRGBD(cv_ptrRGB->image, cv_ptrD->image, cv_ptrRGB->header.stamp.toSec());
 
-    ros::Time current_frame_time = cv_ptrRGB->header.stamp;
+    // ros::Time current_frame_time = cv_ptrRGB->header.stamp;
+    ros::Time current_frame_time = ros::Time::now();
 
-    publish_ros_pose_tf(Tcw, current_frame_time, ORB_SLAM3::System::STEREO);
+    publish_ros_pose_tf(Tcw, *msgRGB, *msgD, current_frame_time, ORB_SLAM3::System::STEREO);
 
     publish_ros_tracking_mappoints(mpSLAM->GetTrackedMapPoints(), current_frame_time);
 

@@ -17,6 +17,7 @@
 
 #include <std_msgs/Header.h>
 #include <sensor_msgs/Imu.h>
+#include <sensor_msgs/Image.h>
 #include <sensor_msgs/PointCloud2.h>
 
 #include <message_filters/subscriber.h>
@@ -27,7 +28,10 @@
 #include "include/System.h"
 #include "include/ImuTypes.h"
 
+#include "orb_slam3_ros_wrapper/imap_input.h"
+
 extern ros::Publisher pose_pub;
+extern ros::Publisher imap_pub;
 extern ros::Publisher map_points_pub;
 extern image_transport::Publisher rendered_image_pub;
 
@@ -38,7 +42,7 @@ void setup_ros_publishers(ros::NodeHandle &node_handler, image_transport::ImageT
 void setup_tf_orb_to_ros(ORB_SLAM3::System::eSensor);
 
 
-void publish_ros_pose_tf(cv::Mat, ros::Time, ORB_SLAM3::System::eSensor);
+void publish_ros_pose_tf(cv::Mat, sensor_msgs::Image , sensor_msgs::Image, ros::Time, ORB_SLAM3::System::eSensor);
 void publish_tf_transform(tf::Transform, ros::Time);
 void publish_pose_stamped(tf::Transform, ros::Time);
 void publish_ros_tracking_img(cv::Mat, ros::Time);

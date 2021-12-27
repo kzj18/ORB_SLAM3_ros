@@ -18,6 +18,7 @@ find_package (catkin REQUIRED COMPONENTS
    image_transport
    tf
    sensor_msgs
+   geometry_msgs
    message_generation
 )
 
@@ -30,6 +31,17 @@ MESSAGE("Eigen 3 VERSION:")
 MESSAGE(${Eigen3_VERSION})
 
 find_package(Pangolin REQUIRED)
+
+add_message_files(
+  FILES
+  imap_input.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  sensor_msgs
+  geometry_msgs
+)
 
 catkin_package (
    CATKIN_DEPENDS roscpp rospy std_msgs cv_bridge image_transport tf sensor_msgs message_runtime
@@ -56,46 +68,48 @@ set(LIBS
 )
 
 # mono node
-add_executable (${PROJECT_NAME}_mono
-   src/mono_node.cc
-   src/common.cc
-)
-target_link_libraries(${PROJECT_NAME}_mono
-   ${LIBS}
-)
+# add_executable (${PROJECT_NAME}_mono
+#    src/mono_node.cc
+#    src/common.cc
+# )
+# target_link_libraries(${PROJECT_NAME}_mono
+#    ${LIBS}
+# )
 
 # mono-inertial node
-add_executable (${PROJECT_NAME}_mono_inertial
-   src/mono_inertial_node.cc
-   src/common.cc
-)
-target_link_libraries(${PROJECT_NAME}_mono_inertial
-   ${LIBS}
-)
+# add_executable (${PROJECT_NAME}_mono_inertial
+#    src/mono_inertial_node.cc
+#    src/common.cc
+# )
+# target_link_libraries(${PROJECT_NAME}_mono_inertial
+#    ${LIBS}
+# )
 
-# stereo node
-add_executable (${PROJECT_NAME}_stereo
-   src/stereo_node.cc
-   src/common.cc
-)
-target_link_libraries(${PROJECT_NAME}_stereo
-   ${LIBS}
-)
+# # stereo node
+# add_executable (${PROJECT_NAME}_stereo
+#    src/stereo_node.cc
+#    src/common.cc
+# )
+# target_link_libraries(${PROJECT_NAME}_stereo
+#    ${LIBS}
+# )
 
-# stereo-inertial node
-add_executable (${PROJECT_NAME}_stereo_inertial
-   src/stereo_inertial_node.cc
-   src/common.cc
-)
-target_link_libraries(${PROJECT_NAME}_stereo_inertial
-   ${LIBS}
-)
+# # stereo-inertial node
+# add_executable (${PROJECT_NAME}_stereo_inertial
+#    src/stereo_inertial_node.cc
+#    src/common.cc
+# )
+# target_link_libraries(${PROJECT_NAME}_stereo_inertial
+#    ${LIBS}
+# )
 
 # RGB-D node
 add_executable (${PROJECT_NAME}_rgbd
    src/rgbd_node.cc
    src/common.cc
 )
+add_dependencies(${PROJECT_NAME}_rgbd {${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 target_link_libraries(${PROJECT_NAME}_rgbd
    ${LIBS}
 )
