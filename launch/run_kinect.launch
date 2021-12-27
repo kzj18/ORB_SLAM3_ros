@@ -4,7 +4,7 @@
 
     <!-- Run camera driver -->
     <include file="$(find azure_kinect_ros_driver)/launch/driver.launch">
-        <arg name="depth_mode" value="NFOV_UNBINNED" />
+        <arg name="depth_mode" value="WFOV_2X2BINNED" />
         <arg name="depth_unit" value="32FC1" />
         <arg name="color_resolution" value="720P"/>
         <arg name="fps" value="30"/>
@@ -20,4 +20,19 @@
         <arg name="config_file" value="$(find orb_slam3_ros_wrapper)/config/kinect_config.yaml" />
         <arg name="camera_base_frame" value="camera_base" />
     </include>
+
+    <arg name="manager" value="test_manager"/>
+    <node pkg="nodelet" type="nodelet" name="$(arg manager)" args="manager" output="screen"/>
+
+    <node pkg="nodelet" type="nodelet" name="standalone_nodelet" args="manager"/>
+
+    <node pkg="nodelet" type="nodelet" name="rectify_color" args="load image_proc/rectify $(arg manager) --no-bond">
+        <remap from="image_mono" to="/rgb/image_raw" />
+        <remap from="image_rect" to="/image_rect_color" />
+    </node>
+
+    <node pkg="nodelet" type="nodelet" name="rectify_depth" args="load image_proc/rectify $(arg manager) --no-bond">
+        <remap from="image_mono" to="/depth_to_rgb/image_raw" />
+        <remap from="image_rect" to="/image_rect_depth" />
+    </node>
 </launch>
