@@ -38,10 +38,10 @@ Camera.height: 720
 Camera.bf: 40.0
 
 # Close/Far threshold. Baseline times.
-ThDepth: 40.0
+ThDepth: 50.0
 
 # Deptmap values factor 
-DepthMapFactor: 1.0 # 1.0 for ROS_bag
+DepthMapFactor: 1000.0 # 1.0 for ROS_bag
 
 #--------------------------------------------------------------------------------------------
 # ORB Parameters
