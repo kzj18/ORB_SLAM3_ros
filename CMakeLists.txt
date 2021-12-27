@@ -34,7 +34,7 @@ find_package(Pangolin REQUIRED)
 
 add_message_files(
   FILES
-  imap_input.msg
+  map_frame.msg
 )
 
 generate_messages(
@@ -106,7 +106,7 @@ set(LIBS
 # RGB-D node
 add_executable (${PROJECT_NAME}_rgbd
    src/rgbd_node.cc
-   src/common.cc
+   src/ORB_SLAM3_interface.cpp
 )
 add_dependencies(${PROJECT_NAME}_rgbd {${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
