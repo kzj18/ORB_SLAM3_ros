@@ -53,6 +53,7 @@ include_directories(
    ${catkin_INCLUDE_DIRS}
    ${ORB_SLAM3_DIR}
    ${ORB_SLAM3_DIR}/include
+   ${ORB_SLAM3_DIR}/Thirdparty/Sophus
    ${ORB_SLAM3_DIR}/include/CameraModels
    ${EIGEN3_INCLUDE_DIR}
    ${Pangolin_INCLUDE_DIRS}

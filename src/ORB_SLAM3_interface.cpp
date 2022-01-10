@@ -1,4 +1,5 @@
 #include "orb_slam3_ros_wrapper/ORB_SLAM3_interface.h"
+#include "sophus/geometry.hpp"
 
 ORB_SLAM3_interface::ORB_SLAM3_interface(ORB_SLAM3::System* pSLAM, ros::NodeHandle* node_handle)
   : mpSLAM(pSLAM), node_handle(node_handle)
@@ -41,36 +42,31 @@ void ORB_SLAM3_interface::rgbd_callback(const sensor_msgs::ImageConstPtr& msgRGB
   }
 
   // Main algorithm runs here
-  cv::Mat Tcw = mpSLAM->TrackRGBD(cv_ptrRGB->image, cv_ptrD->image, cv_ptrRGB->header.stamp.toSec());
+  Sophus::SE3f Tcw = mpSLAM->TrackRGBD(cv_ptrRGB->image, cv_ptrD->image, cv_ptrRGB->header.stamp.toSec());
 
   publish_map_frame(Tcw, *msgRGB, *msgD, ORB_SLAM3::System::STEREO);
   //  publish_tracking_mappoints(mpSLAM->GetTrackedMapPoints(), cv_ptrRGB->header.stamp);
 }
 
-void ORB_SLAM3_interface::publish_map_frame(cv::Mat Tcw, sensor_msgs::Image msgRGB, sensor_msgs::Image msgD,
+void ORB_SLAM3_interface::publish_map_frame(Sophus::SE3f Tcw, sensor_msgs::Image msgRGB, sensor_msgs::Image msgD,
                                             ORB_SLAM3::System::eSensor sensor_type)
 {
-  if (Tcw.empty())
-    return;
+  Eigen::Isometry3d camera_tf;
+  camera_tf.matrix() = Tcw.matrix().cast<double>();
 
-  cv::Mat orb_rotation(3, 3, CV_32F);
-  cv::Mat orb_translation(3, 1, CV_32F);
-
-  orb_rotation = Tcw.rowRange(0, 3).colRange(0, 3);
-  orb_translation = Tcw.rowRange(0, 3).col(3);
-
-  tf::Matrix3x3 tf_camera_rotation(
-      orb_rotation.at<float>(0, 0), orb_rotation.at<float>(0, 1), orb_rotation.at<float>(0, 2),
-      orb_rotation.at<float>(1, 0), orb_rotation.at<float>(1, 1), orb_rotation.at<float>(1, 2),
-      orb_rotation.at<float>(2, 0), orb_rotation.at<float>(2, 1), orb_rotation.at<float>(2, 2));
-
-  tf::Vector3 tf_camera_translation(orb_translation.at<float>(0), orb_translation.at<float>(1),
-                                    orb_translation.at<float>(2));
-  tf::Transform tf_transform = tf::Transform(tf_camera_rotation, tf_camera_translation);
-
-  tf::Stamped<tf::Pose> grasp_tf_pose(tf_transform, ros::Time::now(), map_frame_id);
   geometry_msgs::PoseStamped pose_msg;
-  tf::poseStampedTFToMsg(grasp_tf_pose, pose_msg);
+  pose_msg.header.stamp = ros::Time::now();
+  pose_msg.header.frame_id = map_frame_id;
+
+  pose_msg.pose.position.x = camera_tf.translation().x();
+  pose_msg.pose.position.y = camera_tf.translation().y();
+  pose_msg.pose.position.z = camera_tf.translation().z();
+
+  Eigen::Quaterniond q(camera_tf.linear());
+  pose_msg.pose.orientation.x = q.x();
+  pose_msg.pose.orientation.y = q.y();
+  pose_msg.pose.orientation.z = q.z();
+  pose_msg.pose.orientation.w = q.w();
 
   orb_slam3_ros_wrapper::map_frame map_frame_msg;
   map_frame_msg.rgb = msgRGB;

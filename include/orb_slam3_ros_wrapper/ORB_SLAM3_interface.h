@@ -37,6 +37,6 @@ public:
   // void stereo_callback(const sensor_msgs::ImageConstPtr& msgRGB);
   void rgbd_callback(const sensor_msgs::ImageConstPtr& msgRGB, const sensor_msgs::ImageConstPtr& msgD);
 
-  void publish_map_frame(cv::Mat Tcw, sensor_msgs::Image msgRGB, sensor_msgs::Image msgD,
+  void publish_map_frame(Sophus::SE3f Tcw, sensor_msgs::Image msgRGB, sensor_msgs::Image msgD,
                          ORB_SLAM3::System::eSensor sensor_type);
 };
