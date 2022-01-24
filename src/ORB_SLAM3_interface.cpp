@@ -16,6 +16,8 @@ ORB_SLAM3_interface::ORB_SLAM3_interface(ORB_SLAM3::System* pSLAM, ros::NodeHand
   std::string node_name = ros::this_node::getName();
   node_handle->param<std::string>(node_name + "/map_frame_id", map_frame_id, "map");
   node_handle->param<std::string>(node_name + "/pose_frame_id", pose_frame_id, "pose");
+
+  prev_sample_time = ros::Time::now();
 }
 
 void ORB_SLAM3_interface::rgbd_callback(const sensor_msgs::ImageConstPtr& msgRGB,
@@ -51,32 +53,37 @@ void ORB_SLAM3_interface::rgbd_callback(const sensor_msgs::ImageConstPtr& msgRGB
   //  publish_tracking_mappoints(mpSLAM->GetTrackedMapPoints(), cv_ptrRGB->header.stamp);
 
   //  publish keyframe samples
-  std::vector<cv::Mat> imRGBList, imDepthList;
-  std::vector<Sophus::SE3f> poses;
-  mpSLAM->sample_keyframes(10, imRGBList, imDepthList, poses);
-
-  orb_slam3_ros_wrapper::keyframes keyframes_msg;
-  
-  cv_bridge::CvImage img_msg;
-  // out_msg.header   = in_msg->header; // Same timestamp and tf frame as input image
-
-  geometry_msgs::PoseStamped pose_msg;
-  for(int i = 0; i < poses.size(); i++ )
+  if(ros::Time::now().nsec - prev_sample_time.nsec > 10e+8)
   {
-    // img_ptr = 
-    img_msg.encoding = sensor_msgs::image_encodings::RGB8;
-    img_msg.image = imRGBList[i];
-    keyframes_msg.rgb[i] = *(img_msg.toImageMsg());
-    
-    img_msg.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
-    img_msg.image = imDepthList[i];
-    keyframes_msg.depth[i] = *(img_msg.toImageMsg());
+    prev_sample_time = ros::Time::now();
 
-    pose_msg = SE3toPoseMsg(poses[i]);
-    keyframes_msg.poses[i] = pose_msg.pose;
+    std::vector<cv::Mat> imRGBList, imDepthList;
+    std::vector<Sophus::SE3f> poses;
+    mpSLAM->sample_keyframes(10, imRGBList, imDepthList, poses);
+
+    orb_slam3_ros_wrapper::keyframes keyframes_msg;
+    
+    cv_bridge::CvImage img_msg;
+    // out_msg.header   = in_msg->header; // Same timestamp and tf frame as input image
+
+    geometry_msgs::PoseStamped pose_msg;
+    for(int i = 0; i < poses.size(); i++ )
+    {
+      // img_ptr = 
+      img_msg.encoding = sensor_msgs::image_encodings::RGB8;
+      img_msg.image = imRGBList[i];
+      keyframes_msg.rgb[i] = *(img_msg.toImageMsg());
+      
+      img_msg.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
+      img_msg.image = imDepthList[i];
+      keyframes_msg.depth[i] = *(img_msg.toImageMsg());
+
+      pose_msg = SE3toPoseMsg(poses[i]);
+      keyframes_msg.poses[i] = pose_msg.pose;
+    }
+    
+    keyframes_pub.publish(keyframes_msg);
   }
-  
-  keyframes_pub.publish(keyframes_msg);
 }
 
 geometry_msgs::PoseStamped ORB_SLAM3_interface::SE3toPoseMsg(Sophus::SE3f tf)

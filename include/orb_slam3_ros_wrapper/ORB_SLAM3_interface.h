@@ -31,6 +31,8 @@ class ORB_SLAM3_interface
   std::string map_frame_id;
   std::string pose_frame_id;
 
+  ros::Time prev_sample_time;
+
 public:
   ORB_SLAM3_interface(ORB_SLAM3::System* pSLAM, ros::NodeHandle* node_handle);
 
