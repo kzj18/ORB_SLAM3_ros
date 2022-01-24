@@ -14,6 +14,7 @@
 #include "include/ImuTypes.h"
 #include "include/System.h"
 #include "orb_slam3_ros_wrapper/map_frame.h"
+#include "orb_slam3_ros_wrapper/keyframes.h"
 
 class ORB_SLAM3_interface
 {
@@ -24,6 +25,7 @@ class ORB_SLAM3_interface
   ros::Publisher pose_pub;
   ros::Publisher map_frame_pub;
   ros::Publisher map_points_pub;
+  ros::Publisher keyframes_pub;
   image_transport::Publisher rendered_image_pub;
 
   std::string map_frame_id;
@@ -36,6 +38,8 @@ public:
   // void rgb_imu_callback(const sensor_msgs::ImageConstPtr& msgRGB);
   // void stereo_callback(const sensor_msgs::ImageConstPtr& msgRGB);
   void rgbd_callback(const sensor_msgs::ImageConstPtr& msgRGB, const sensor_msgs::ImageConstPtr& msgD);
+
+  geometry_msgs::PoseStamped SE3toPoseMsg(Sophus::SE3f tf);
 
   void publish_map_frame(Sophus::SE3f Tcw, sensor_msgs::Image msgRGB, sensor_msgs::Image msgD,
                          ORB_SLAM3::System::eSensor sensor_type);

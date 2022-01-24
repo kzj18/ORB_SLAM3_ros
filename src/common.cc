@@ -47,7 +47,7 @@ void publish_ros_pose_tf(cv::Mat Tcw, sensor_msgs::Image msgRGB, sensor_msgs::Im
         );
 
         tf::Vector3 tf_camera_translation(orb_translation.at<float> (0), orb_translation.at<float> (1), orb_translation.at<float> (2));
-        tf::Transform tf_transform = tf::Transform(tf_camera_rotation, tf_camera_translation);;
+        tf::Transform tf_transform = tf::Transform(tf_camera_rotation, tf_camera_translation);
 
         tf::Stamped<tf::Pose> grasp_tf_pose(tf_transform, current_frame_time, map_frame_id);
         geometry_msgs::PoseStamped pose_msg;

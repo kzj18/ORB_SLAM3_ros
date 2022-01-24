@@ -8,7 +8,7 @@ set(ORB_SLAM3_DIR
 
 set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_FLAGS "-std=c++14")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g")
 
 find_package (catkin REQUIRED COMPONENTS
    roscpp
@@ -34,6 +34,7 @@ find_package(Pangolin REQUIRED)
 
 add_message_files(
   FILES
+  keyframes.msg
   map_frame.msg
 )
 

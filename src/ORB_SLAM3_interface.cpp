@@ -1,12 +1,15 @@
 #include "orb_slam3_ros_wrapper/ORB_SLAM3_interface.h"
 #include "sophus/geometry.hpp"
 
+#include <vector>
+
 ORB_SLAM3_interface::ORB_SLAM3_interface(ORB_SLAM3::System* pSLAM, ros::NodeHandle* node_handle)
   : mpSLAM(pSLAM), node_handle(node_handle)
 {
   pose_pub = node_handle->advertise<geometry_msgs::PoseStamped>("/orb_slam3_ros/camera", 1);
   //  map_points_pub = node_handle->advertise<sensor_msgs::PointCloud2>("orb_slam3_ros/map_points", 1);
   map_frame_pub = node_handle->advertise<orb_slam3_ros_wrapper::map_frame>("/map_frames", 1);
+  keyframes_pub = node_handle->advertise<orb_slam3_ros_wrapper::keyframes>("/keyframes", 1);
 
   //  rendered_image_pub = image_transport.advertise("orb_slam3_ros/tracking_image", 1);
 
@@ -46,13 +49,40 @@ void ORB_SLAM3_interface::rgbd_callback(const sensor_msgs::ImageConstPtr& msgRGB
 
   publish_map_frame(Tcw, *msgRGB, *msgD, ORB_SLAM3::System::STEREO);
   //  publish_tracking_mappoints(mpSLAM->GetTrackedMapPoints(), cv_ptrRGB->header.stamp);
+
+  //  publish keyframe samples
+  std::vector<cv::Mat> imRGBList, imDepthList;
+  std::vector<Sophus::SE3f> poses;
+  mpSLAM->sample_keyframes(10, imRGBList, imDepthList, poses);
+
+  orb_slam3_ros_wrapper::keyframes keyframes_msg;
+  
+  cv_bridge::CvImage img_msg;
+  // out_msg.header   = in_msg->header; // Same timestamp and tf frame as input image
+
+  geometry_msgs::PoseStamped pose_msg;
+  for(int i = 0; i < poses.size(); i++ )
+  {
+    // img_ptr = 
+    img_msg.encoding = sensor_msgs::image_encodings::RGB8;
+    img_msg.image = imRGBList[i];
+    keyframes_msg.rgb[i] = *(img_msg.toImageMsg());
+    
+    img_msg.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
+    img_msg.image = imDepthList[i];
+    keyframes_msg.depth[i] = *(img_msg.toImageMsg());
+
+    pose_msg = SE3toPoseMsg(poses[i]);
+    keyframes_msg.poses[i] = pose_msg.pose;
+  }
+  
+  keyframes_pub.publish(keyframes_msg);
 }
 
-void ORB_SLAM3_interface::publish_map_frame(Sophus::SE3f Tcw, sensor_msgs::Image msgRGB, sensor_msgs::Image msgD,
-                                            ORB_SLAM3::System::eSensor sensor_type)
+geometry_msgs::PoseStamped ORB_SLAM3_interface::SE3toPoseMsg(Sophus::SE3f tf)
 {
   Eigen::Isometry3d camera_tf;
-  camera_tf.matrix() = Tcw.matrix().cast<double>();
+  camera_tf.matrix() = tf.matrix().cast<double>();
 
   geometry_msgs::PoseStamped pose_msg;
   pose_msg.header.stamp = ros::Time::now();
@@ -68,10 +98,16 @@ void ORB_SLAM3_interface::publish_map_frame(Sophus::SE3f Tcw, sensor_msgs::Image
   pose_msg.pose.orientation.z = q.z();
   pose_msg.pose.orientation.w = q.w();
 
+  return pose_msg;
+}
+
+void ORB_SLAM3_interface::publish_map_frame(Sophus::SE3f Tcw, sensor_msgs::Image msgRGB, sensor_msgs::Image msgD,
+                                            ORB_SLAM3::System::eSensor sensor_type)
+{
   orb_slam3_ros_wrapper::map_frame map_frame_msg;
   map_frame_msg.rgb = msgRGB;
   map_frame_msg.depth = msgD;
-  map_frame_msg.pose = pose_msg.pose;
+  map_frame_msg.pose = SE3toPoseMsg(Tcw).pose;
 
   map_frame_pub.publish(map_frame_msg);
 
