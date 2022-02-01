@@ -53,7 +53,7 @@ void ORB_SLAM3_interface::rgbd_callback(const sensor_msgs::ImageConstPtr& msgRGB
   //  publish_tracking_mappoints(mpSLAM->GetTrackedMapPoints(), cv_ptrRGB->header.stamp);
 
   //  publish keyframe samples
-  if(ros::Time::now().nsec - prev_sample_time.nsec > 10e+8)
+  if(ros::Time::now().nsec - prev_sample_time.nsec > 5e+8)
   {
     prev_sample_time = ros::Time::now();
 
@@ -81,7 +81,7 @@ void ORB_SLAM3_interface::rgbd_callback(const sensor_msgs::ImageConstPtr& msgRGB
       pose_msg = SE3toPoseMsg(poses[i]);
       keyframes_msg.poses[i] = pose_msg.pose;
     }
-    
+    keyframes_msg.count = poses.size();
     keyframes_pub.publish(keyframes_msg);
   }
 }
