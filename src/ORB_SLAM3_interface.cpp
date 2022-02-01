@@ -70,7 +70,7 @@ void ORB_SLAM3_interface::rgbd_callback(const sensor_msgs::ImageConstPtr& msgRGB
     for(int i = 0; i < poses.size(); i++ )
     {
       // img_ptr = 
-      img_msg.encoding = sensor_msgs::image_encodings::RGB8;
+      img_msg.encoding = sensor_msgs::image_encodings::BGRA8;
       img_msg.image = imRGBList[i];
       keyframes_msg.rgb[i] = *(img_msg.toImageMsg());
       
