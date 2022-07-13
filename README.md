@@ -64,11 +64,6 @@ cd ~/catkin_ws/src/ORB_SLAM3_ros/config
 tar -xf ORBvoc.txt.tar.gz
 ```
 
-- Install `hector-trajectory-server` to visualize the trajectory.
-```
-sudo apt install ros-[kinetic/melodic]-hector-trajectory-server
-```
-
 - If everything works fine, you can now try the different launch files in the `launch` folder.
 
 ## 3. How to run
