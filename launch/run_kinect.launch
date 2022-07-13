@@ -1,6 +1,7 @@
 <launch>
     <!--options: mono, rgbd or inertial  -->
     <arg name="mode" default="rgbd"/>
+    <arg name="show_vis" default="true"/>
 
     <!-- Run camera driver -->
     <include file="$(find azure_kinect_ros_driver)/launch/driver.launch">
@@ -19,6 +20,7 @@
         <arg name="imu_topic" value="/imu" />
         <arg name="config_file" value="$(find orb_slam3_ros_wrapper)/config/kinect_config.yaml" />
         <arg name="camera_base_frame" value="camera_base" />
+        <arg name="show_vis" value="$(arg show_vis)"/>
     </include>
 
     <arg name="manager" value="test_manager"/>

@@ -20,6 +20,8 @@ int main(int argc, char **argv)
   std::string voc_file, settings_file;
   node_handler.param<std::string>(node_name + "/voc_file", voc_file, "file_not_set");
   node_handler.param<std::string>(node_name + "/settings_file", settings_file, "file_not_set");
+  bool show_vis;
+  node_handler.param<bool>(node_name + "/show_vis", show_vis, false);
 
   if (voc_file == "file_not_set" || settings_file == "file_not_set")
   {
@@ -29,7 +31,7 @@ int main(int argc, char **argv)
   }
 
   // Create SLAM system. It initializes all system threads and gets ready to process frames.
-  ORB_SLAM3::System SLAM(voc_file, settings_file, ORB_SLAM3::System::RGBD, false);
+  ORB_SLAM3::System SLAM(voc_file, settings_file, ORB_SLAM3::System::RGBD, show_vis);
 
   ORB_SLAM3_interface orb_slam_interface(&SLAM, &node_handler);
 //   setup_tf_orb_to_ros(ORB_SLAM3::System::RGBD);

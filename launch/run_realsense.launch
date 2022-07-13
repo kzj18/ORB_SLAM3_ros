@@ -1,6 +1,7 @@
 <launch>
     <!--options: mono, rgbd or inertial  -->
     <arg name="mode" default="rgbd"/>
+    <arg name="show_vis" default="true"/>
 
     <!-- Run camera driver -->
     <include file="$(find realsense2_camera)/launch/rs_camera.launch">
@@ -24,5 +25,6 @@
         <arg name="imu_topic" value="/camera/imu" />
         <arg name="config_file" value="$(find orb_slam3_ros_wrapper)/config/realsense_config.yaml" />
         <arg name="camera_base_frame" value="camera_link" />
+        <arg name="show_vis" value="$(arg show_vis)"/>
     </include>
 </launch>

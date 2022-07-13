@@ -12,9 +12,7 @@ A ROS wrapper for [ORB-SLAM3](https://github.com/UZ-SLAMLab/ORB_SLAM3). The main
 
 
 ## Current known limitations
-- For mono+imu and stereo+imu cases, the world frame seems to change arbitrarily each time a big Bundle Adjustment is invoked. As a result, you will see the pose data suddenly jumps around, but actually it is the world frame that teleports. The issue is raised [here](https://github.com/UZ-SLAMLab/ORB_SLAM3/issues/172).  
-- Currently there is no public API to obtain the tracking image from ORB-SLAM3, so wait for [this PR](https://github.com/UZ-SLAMLab/ORB_SLAM3/pull/174) to be merged.
-- Currently there is no public API to obtain the full map points and other data to debug.
+Only works for RGBD node.
 
 # Installation
 First install ORB-SLAM3 normally with all of its dependencies (any location is fine) then install this package in a ```catkin build``` environment.

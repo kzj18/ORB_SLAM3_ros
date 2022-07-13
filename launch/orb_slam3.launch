@@ -6,6 +6,7 @@
     <arg name="imu_topic" default=""/>
     <arg name="config_file" default=""/>
     <arg name="camera_base_frame" default=""/>
+    <arg name="show_vis" default="true"/>
 
     <!-- Run ORB_SLAM3 in Monocular mode -->
     <group if="$(eval mode == 'mono')">
@@ -15,6 +16,7 @@
             <!-- Parameters for original ORB-SLAM3 -->
             <param name="voc_file" type="string" value="$(find orb_slam3_ros_wrapper)/config/ORBvoc.txt" />
             <param name="settings_file" type="string" value="$(arg config_file)" />
+            <param name="show_vis" type="bool" value="$(arg show_vis)" />
 
             <!-- Parameters for ROS -->
             <param name="map_frame_id" type="string" value="world" />
@@ -31,6 +33,7 @@
             <!-- Parameters for original ORB-SLAM3 -->
             <param name="voc_file" type="string" value="$(find orb_slam3_ros_wrapper)/config/ORBvoc.txt" />
             <param name="settings_file" type="string" value="$(arg config_file)" />
+            <param name="show_vis" type="bool" value="$(arg show_vis)" />
 
             <!-- Parameters for ROS -->
             <param name="map_frame_id" type="string" value="world" />
@@ -48,6 +51,7 @@
             <!-- Parameters for original ORB-SLAM3 -->
             <param name="voc_file" type="string" value="$(find orb_slam3_ros_wrapper)/config/ORBvoc.txt" />
             <param name="settings_file" type="string" value="$(arg config_file)" />
+            <param name="show_vis" type="bool" value="$(arg show_vis)" />
             <param name="do_equalize" type="bool" value="false" />
 
             <!-- Parameters for ROS -->
