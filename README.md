@@ -79,8 +79,8 @@ First install the realsense ros wrapper with `sudo apt-get install ros-$ROS_DIST
 roslaunch orb_slam3_ros_wrapper run_realsense.launch
 ```
 
-# Topics
-When running in RGBD mode, the topic `/frames` is published which contains:
+# Published topic
+When running in RGBD mode, the topic `/frames` is published which is a custom message containing synchronised:
 - `rgb` of type [`sensor_msg/Image`](http://docs.ros.org/en/noetic/api/sensor_msgs/html/msg/Image.html)
 - `depth` of type [`sensor_msg/Image`](http://docs.ros.org/en/noetic/api/sensor_msgs/html/msg/Image.html)
-- `depth` of type [`sensor_msg/Image`](http://docs.ros.org/en/noetic/api/geometry_msgs/html/msg/Pose.html)
+- `pose` of type [`geometry_msgs/Pose`](http://docs.ros.org/en/noetic/api/geometry_msgs/html/msg/Pose.html)
