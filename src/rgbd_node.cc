@@ -29,7 +29,7 @@ int main(int argc, char **argv)
   }
 
   // Create SLAM system. It initializes all system threads and gets ready to process frames.
-  ORB_SLAM3::System SLAM(voc_file, settings_file, ORB_SLAM3::System::RGBD, true);
+  ORB_SLAM3::System SLAM(voc_file, settings_file, ORB_SLAM3::System::RGBD, false);
 
   ORB_SLAM3_interface orb_slam_interface(&SLAM, &node_handler);
 //   setup_tf_orb_to_ros(ORB_SLAM3::System::RGBD);

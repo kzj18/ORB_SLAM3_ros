@@ -13,13 +13,6 @@ A ROS wrapper for [ORB-SLAM3](https://github.com/UZ-SLAMLab/ORB_SLAM3). The main
   - Might break when dependencies or upstream changes.
 
 
-## To-do
-- [x] Add nodes for each supported sensor type (mono, mono + imu, stereo, stereo + imu, rgbd).
-- [x] Add launch files for the nodes.
-- [x] Add ROS publishers for pose, pointcloud, path.
-- [ ] Add ROS publisher for tracking image (require changes in ORB-SLAM3 to be merged).
-- [ ] Test with different variants of ORB-SLAM2/3, such as [DynaSLAM](https://github.com/BertaBescos/DynaSLAM) or [SuperPoint-SLAM](https://github.com/KinglittleQ/SuperPoint_SLAM).
-
 ## Current known limitations
 - For mono+imu and stereo+imu cases, the world frame seems to change arbitrarily each time a big Bundle Adjustment is invoked. As a result, you will see the pose data suddenly jumps around, but actually it is the world frame that teleports. The issue is raised [here](https://github.com/UZ-SLAMLab/ORB_SLAM3/issues/172).  
 - Currently there is no public API to obtain the tracking image from ORB-SLAM3, so wait for [this PR](https://github.com/UZ-SLAMLab/ORB_SLAM3/pull/174) to be merged.
