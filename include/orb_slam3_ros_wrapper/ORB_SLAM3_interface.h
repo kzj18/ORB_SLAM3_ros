@@ -13,8 +13,7 @@
 // ORB-SLAM3-specific libraries. Directory is defined in CMakeLists.txt: ${ORB_SLAM3_DIR}
 #include "include/ImuTypes.h"
 #include "include/System.h"
-#include "orb_slam3_ros_wrapper/map_frame.h"
-#include "orb_slam3_ros_wrapper/keyframes.h"
+#include "orb_slam3_ros_wrapper/frame.h"
 
 class ORB_SLAM3_interface
 {
@@ -22,11 +21,7 @@ class ORB_SLAM3_interface
 
   ros::NodeHandle* node_handle;
 
-  ros::Publisher pose_pub;
-  ros::Publisher map_frame_pub;
-  ros::Publisher map_points_pub;
-  ros::Publisher keyframes_pub;
-  image_transport::Publisher rendered_image_pub;
+  ros::Publisher frame_pub;
 
   std::string map_frame_id;
   std::string pose_frame_id;
@@ -43,6 +38,6 @@ public:
 
   geometry_msgs::PoseStamped SE3toPoseMsg(Sophus::SE3f tf);
 
-  void publish_map_frame(Sophus::SE3f Tcw, sensor_msgs::Image msgRGB, sensor_msgs::Image msgD,
+  void publish_frame(Sophus::SE3f Tcw, sensor_msgs::Image msgRGB, sensor_msgs::Image msgD,
                          ORB_SLAM3::System::eSensor sensor_type);
 };

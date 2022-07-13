@@ -6,12 +6,7 @@
 ORB_SLAM3_interface::ORB_SLAM3_interface(ORB_SLAM3::System* pSLAM, ros::NodeHandle* node_handle)
   : mpSLAM(pSLAM), node_handle(node_handle)
 {
-  pose_pub = node_handle->advertise<geometry_msgs::PoseStamped>("/orb_slam3_ros/camera", 1);
-  //  map_points_pub = node_handle->advertise<sensor_msgs::PointCloud2>("orb_slam3_ros/map_points", 1);
-  map_frame_pub = node_handle->advertise<orb_slam3_ros_wrapper::map_frame>("/map_frames", 1);
-  keyframes_pub = node_handle->advertise<orb_slam3_ros_wrapper::keyframes>("/keyframes", 1);
-
-  //  rendered_image_pub = image_transport.advertise("orb_slam3_ros/tracking_image", 1);
+  frame_pub = node_handle->advertise<orb_slam3_ros_wrapper::frame>("/frames", 1);
 
   std::string node_name = ros::this_node::getName();
   node_handle->param<std::string>(node_name + "/map_frame_id", map_frame_id, "map");
@@ -49,57 +44,8 @@ void ORB_SLAM3_interface::rgbd_callback(const sensor_msgs::ImageConstPtr& msgRGB
   // Main algorithm runs here
   Sophus::SE3f Tcw = mpSLAM->TrackRGBD(cv_ptrRGB->image, cv_ptrD->image, cv_ptrRGB->header.stamp.toSec());
 
-  publish_map_frame(Tcw, *msgRGB, *msgD, ORB_SLAM3::System::STEREO);
+  publish_frame(Tcw, *msgRGB, *msgD, ORB_SLAM3::System::STEREO);
   //  publish_tracking_mappoints(mpSLAM->GetTrackedMapPoints(), cv_ptrRGB->header.stamp);
-
-  //  publish keyframe samples
-  if(ros::Time::now().nsec - prev_sample_time.nsec > 5e+8)
-  {
-    prev_sample_time = ros::Time::now();
-
-    std::vector<cv::Mat> imRGBList, imDepthList;
-    std::vector<Sophus::SE3f> poses;
-    //mpSLAM->sample_keyframes(10, imRGBList, imDepthList, poses);
-    cv::Mat imRGB, imDepth;
-    Sophus::SE3f pose;
-    mpSLAM->get_latest_keyframe(imRGB, imDepth, pose);
-    
-    orb_slam3_ros_wrapper::keyframes keyframes_msg;
-    
-    cv_bridge::CvImage img_msg;
-    // out_msg.header   = in_msg->header; // Same timestamp and tf frame as input image
-
-    geometry_msgs::PoseStamped pose_msg;
-    //for(int i = 0; i < poses.size(); i++ )
-    //{
-    //  // img_ptr = 
-    //  img_msg.encoding = sensor_msgs::image_encodings::BGRA8;
-    //  img_msg.image = imRGBList[i];
-    //  keyframes_msg.rgb[i] = *(img_msg.toImageMsg());
-    //  
-    //  img_msg.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
-    //  img_msg.image = imDepthList[i];
-    //  keyframes_msg.depth[i] = *(img_msg.toImageMsg());
-//
-  //    pose_msg = SE3toPoseMsg(poses[i]);
-    //  keyframes_msg.poses[i] = pose_msg.pose;
-    //}
-    //keyframes_msg.count = poses.size();
-    // only one frame
-    keyframes_msg.count = 1;
-    img_msg.encoding = sensor_msgs::image_encodings::RGB8;
-    img_msg.image = imRGB;
-    keyframes_msg.rgb[0] = *(img_msg.toImageMsg());
-   
-    img_msg.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
-    img_msg.image = imDepth;
-    keyframes_msg.depth[0] = *(img_msg.toImageMsg());
-
-    pose_msg = SE3toPoseMsg(pose);
-    keyframes_msg.poses[0] = pose_msg.pose;
-    
-    keyframes_pub.publish(keyframes_msg);
-  }
 }
 
 geometry_msgs::PoseStamped ORB_SLAM3_interface::SE3toPoseMsg(Sophus::SE3f tf)
@@ -124,16 +70,13 @@ geometry_msgs::PoseStamped ORB_SLAM3_interface::SE3toPoseMsg(Sophus::SE3f tf)
   return pose_msg;
 }
 
-void ORB_SLAM3_interface::publish_map_frame(Sophus::SE3f Tcw, sensor_msgs::Image msgRGB, sensor_msgs::Image msgD,
+void ORB_SLAM3_interface::publish_frame(Sophus::SE3f Tcw, sensor_msgs::Image msgRGB, sensor_msgs::Image msgD,
                                             ORB_SLAM3::System::eSensor sensor_type)
 {
-  orb_slam3_ros_wrapper::map_frame map_frame_msg;
-  map_frame_msg.rgb = msgRGB;
-  map_frame_msg.depth = msgD;
-  map_frame_msg.pose = SE3toPoseMsg(Tcw).pose;
+  orb_slam3_ros_wrapper::frame frame_msg;
+  frame_msg.rgb = msgRGB;
+  frame_msg.depth = msgD;
+  frame_msg.pose = SE3toPoseMsg(Tcw).pose;
 
-  map_frame_pub.publish(map_frame_msg);
-
-  // publish_tf_transform(tf_transform, current_frame_time);
-  // publish_pose_stamped(tf_transform, current_frame_time);
+  frame_pub.publish(frame_msg);
 }

@@ -3,7 +3,7 @@ project(orb_slam3_ros_wrapper)
 
 # Change this to your installation of ORB-SLAM3. Default is ~/
 set(ORB_SLAM3_DIR
-   /home/xin/code/lib/ORB_SLAM3
+   /home/joe/demo/ORB_SLAM3
 )
 
 set(CMAKE_BUILD_TYPE "Release")
@@ -34,8 +34,7 @@ find_package(Pangolin REQUIRED)
 
 add_message_files(
   FILES
-  keyframes.msg
-  map_frame.msg
+  frame.msg
 )
 
 generate_messages(
