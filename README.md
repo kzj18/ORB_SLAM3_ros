@@ -1,5 +1,3 @@
-**Ongoing development.**
-
 # ROS wrapper for ORB-SLAM3
 
 A ROS wrapper for [ORB-SLAM3](https://github.com/UZ-SLAMLab/ORB_SLAM3). The main idea is to use the ORB-SLAM3 as a standalone library and interface with it instead of putting everything in one package.
@@ -35,17 +33,17 @@ chmod +x build.sh
 
 - Make sure that **`libORB_SLAM3.so`** is created in the *ORB_SLAM3/lib* folder. If not, check the issue list from the [original repo](https://github.com/UZ-SLAMLab/ORB_SLAM3/issues) and rebuild the package.
 
-## 2. orb_slam3_ros_wrapper (this package)
+## 2. ORB_SLAM3_ros (this package)
 
 - Clone the package. Note that it should be a `catkin build` workspace.
 ```
 cd ~/catkin_ws/src/ # Or the name of your workspace
-git clone https://github.com/thien94/orb_slam3_ros_wrapper.git
+git clone https://github.com/joeaortiz/ORB_SLAM3_ros.git
 ```
 
-- Open `CMakeLists.txt` and change the directory that leads to ORB-SLAM3 library at the beginning of the file (default is home folder)
+- Open `CMakeLists.txt` and change the directory that leads to ORB-SLAM3 library at the beginning of the file (default is home folder).
 ```
-cd ~/catkin_ws/src/orb_slam3_ros_wrapper/
+cd ~/catkin_ws/src/ORB_SLAM3_ros/
 nano CMakeLists.txt
 
 # Change this to your installation of ORB-SLAM3. Default is ~/
@@ -57,12 +55,12 @@ set(ORB_SLAM3_DIR
 - Build the package normally.
 ```
 cd ~/catkin_ws/
-catkin build
+catkin_make
 ```
 
 - Unzip the `ORBvoc.txt` file in the `config` folder in this package. Alternatively, you can change the `voc_file` param in the launch file to point to the right folder.
 ```
-cd ~/catkin_ws/src/orb_slam3_ros_wrapper/config
+cd ~/catkin_ws/src/ORB_SLAM3_ros/config
 tar -xf ORBvoc.txt.tar.gz
 ```
 
@@ -75,17 +73,14 @@ sudo apt install ros-[kinetic/melodic]-hector-trajectory-server
 
 ## 3. How to run
 
-Example with EuRoC dataset:
+Example with the realsense camera. By default the ORB-SLAM3 is run in RGBD mode.
+First install the realsense ros wrapper with `sudo apt-get install ros-$ROS_DISTRO-realsense2-camera`, then you can launch ORB-SLAM3 with:
 ```
-# In one terminal
-roslaunch orb_slam3_ros_wrapper orb_slam3_mono_inertial_euroc.launch
-# In another terminal
-rosbag play MH_01_easy.bag
+roslaunch orb_slam3_ros_wrapper run_realsense.launch
 ```
-Similarly for other sensor types.
 
 # Topics
-The following topics are published by each node:
-- `/orb_slam3_ros/map_points` ([`PointCloud2`](http://docs.ros.org/en/melodic/api/sensor_msgs/html/msg/PointCloud2.html)) containing all keypoints being tracked.
-- `/orb_slam3_ros/camera` ([`PoseStamped`](http://docs.ros.org/en/melodic/api/geometry_msgs/html/msg/PoseStamped.html)): current pose of the camera in the world frame, as returned by ORB-SLAM3 with the world coordinate transformed to conform the ROS standard.
-- `tf`: transformation from the camera fraame to the world frame.
+When running in RGBD mode, the topic `/frames` is published which contains:
+- `rgb` of type [`sensor_msg/Image`](http://docs.ros.org/en/noetic/api/sensor_msgs/html/msg/Image.html)
+- `depth` of type [`sensor_msg/Image`](http://docs.ros.org/en/noetic/api/sensor_msgs/html/msg/Image.html)
+- `depth` of type [`sensor_msg/Image`](http://docs.ros.org/en/noetic/api/geometry_msgs/html/msg/Pose.html)
