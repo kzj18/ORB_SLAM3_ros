@@ -3,7 +3,7 @@ project(orb_slam3_ros_wrapper)
 
 # Change this to your installation of ORB-SLAM3. Default is ~/
 set(ORB_SLAM3_DIR
-   $ENV{HOME}/ORB_SLAM3
+   $ENV{HOME}/Projects/ORB_SLAM3
 )
 
 set(CMAKE_BUILD_TYPE "Release")
@@ -22,9 +22,12 @@ find_package (catkin REQUIRED COMPONENTS
    message_generation
 )
 
-find_package(OpenCV REQUIRED)
+find_package(OpenCV 4.4 REQUIRED)
 MESSAGE("OPENCV VERSION:")
 MESSAGE(${OpenCV_VERSION})
+
+file(GLOB_RECURSE OLD_OPENCV "/usr/lib/x86_64-linux-gnu/libopencv*")
+list(REMOVE_ITEM catkin_LIBRARIES ${OLD_OPENCV})
 
 find_package(Eigen3)
 MESSAGE("Eigen 3 VERSION:")
@@ -35,6 +38,7 @@ find_package(Pangolin REQUIRED)
 add_message_files(
   FILES
   frame.msg
+  frame_compressed.msg
 )
 
 generate_messages(
@@ -57,6 +61,7 @@ include_directories(
    ${ORB_SLAM3_DIR}/include/CameraModels
    ${EIGEN3_INCLUDE_DIR}
    ${Pangolin_INCLUDE_DIRS}
+   ${OpenCV_INCLUDE_DIRS}
 )
 
 # Build ROS nodes
@@ -68,7 +73,7 @@ set(LIBS
    ${OpenCV_LIBS}
 )
 
-# mono node
+# # mono node
 # add_executable (${PROJECT_NAME}_mono
 #    src/mono_node.cc
 #    src/common.cc
@@ -77,7 +82,7 @@ set(LIBS
 #    ${LIBS}
 # )
 
-# mono-inertial node
+# # mono-inertial node
 # add_executable (${PROJECT_NAME}_mono_inertial
 #    src/mono_inertial_node.cc
 #    src/common.cc
@@ -112,5 +117,23 @@ add_executable (${PROJECT_NAME}_rgbd
 add_dependencies(${PROJECT_NAME}_rgbd {${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(${PROJECT_NAME}_rgbd
+   ${LIBS}
+)
+
+# frame compress node
+add_executable (${PROJECT_NAME}_frame_compress
+   src/frame_compress_node.cc
+)
+
+target_link_libraries(${PROJECT_NAME}_frame_compress
+   ${LIBS}
+)
+
+# frame decompress node
+add_executable (${PROJECT_NAME}_frame_decompress
+   src/frame_decompress_node.cc
+)
+
+target_link_libraries(${PROJECT_NAME}_frame_decompress
    ${LIBS}
 )

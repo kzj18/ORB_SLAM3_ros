@@ -1,0 +1,3 @@
+sensor_msgs/CompressedImage rgb
+sensor_msgs/CompressedImage depth
+geometry_msgs/Pose pose

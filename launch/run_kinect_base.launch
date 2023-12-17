@@ -1,0 +1,27 @@
+<launch>
+    <!-- Run camera driver -->
+    <include file="$(find azure_kinect_ros_driver)/launch/driver.launch">
+        <arg name="depth_mode" value="WFOV_2X2BINNED" />
+        <arg name="depth_unit" value="32FC1" />
+        <arg name="color_resolution" value="720P"/>
+        <arg name="fps" value="30"/>
+        <arg name="imu_rate_target" value="200"/>
+    </include>
+
+    <!-- Reconfigure the png level of depth_to_rgb -->
+    <param name="/depth_to_rgb/image_raw/compressedDepth/png_level" value="7" />
+
+<!--
+    <node pkg="web_video_server" type="web_video_server" name="web_video_server" output="screen">
+        <param name="port" type="int" value="8080" />
+        <param name="address" type="string" value="0.0.0.0" />
+        <param name="server_threads" type="int" value="1" />
+        <param name="ros_threads" type="string" value="2" />
+        <param name="type" type="string" value="h264" />
+        
+
+        <param name="width" type="int" value="1280" />
+        <param name="height" type="int" value="720" /> 
+    </node>
+-->
+</launch>

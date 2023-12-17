@@ -4,13 +4,7 @@
     <arg name="show_vis" default="true"/>
 
     <!-- Run camera driver -->
-    <include file="$(find azure_kinect_ros_driver)/launch/driver.launch">
-        <arg name="depth_mode" value="WFOV_2X2BINNED" />
-        <arg name="depth_unit" value="32FC1" />
-        <arg name="color_resolution" value="720P"/>
-        <arg name="fps" value="30"/>
-        <arg name="imu_rate_target" value="200"/>
-    </include>
+    <include file="$(find orb_slam3_ros_wrapper)/launch/run_kinect_base.launch"/>
 
     <!-- Launch ORB_SLAM3 -->
     <include file="$(find orb_slam3_ros_wrapper)/launch/orb_slam3.launch">
