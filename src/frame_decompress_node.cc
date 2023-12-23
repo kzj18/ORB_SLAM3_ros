@@ -16,15 +16,15 @@ public:
 
     void frame_decompress_callback(const frame_compressed_msg_ptr& msg)
     {
+        ROS_INFO("frame_decompress_callback");
         sensor_msgs::Image msgRGB_decompressed;
         sensor_msgs::Image msgD_decompressed;
-        geometry_msgs::Pose msgPose;
         
         int cfg_imdecode_flag = cv::IMREAD_UNCHANGED;
 
         cv_bridge::CvImagePtr cv_ptrRGB(new cv_bridge::CvImage);
         cv_ptrRGB->header = msg->rgb.header;
-
+        ROS_INFO("msg->rgb.data.size(): %i", msg->rgb.data.size());
         try {
             cv_ptrRGB->image = cv::imdecode(msg->rgb.data, cfg_imdecode_flag);
 
@@ -84,9 +84,11 @@ public:
 
         size_t rows = cv_ptrRGB->image.rows;
         size_t cols = cv_ptrRGB->image.cols;
+        ROS_INFO("rgb rows: %i, cols: %i", rows, cols);
 
         if ((rows > 0) && (cols > 0)) {
             msgRGB_decompressed = *(cv_ptrRGB->toImageMsg());
+            ROS_INFO("msgRGB_decompressed.data.size(): %i", msgRGB_decompressed.data.size());
         } else {
             ROS_ERROR("Empty RGB image");
             return;
@@ -100,21 +102,29 @@ public:
         std::string depth_format = "png";
         cv_ptrD->encoding = depth_encoding;
 
+        ROS_INFO("msg->depth.data.size(): %i", msg->depth.data.size());
         if (msg->depth.data.size() > sizeof(ConfigHeader)) {
-            ConfigHeader* compressionConfig;
+            ROS_INFO("msg->depth.data.size() > sizeof(ConfigHeader)");
+            ConfigHeader compressionConfig;
             memcpy(&compressionConfig, &msg->depth.data[0], sizeof(compressionConfig));
+            ROS_INFO("memcpy(&compressionConfig, &msg->depth.data[0], sizeof(compressionConfig))");
 
             const std::vector<uint8_t> depth_data(msg->depth.data.begin() + sizeof(compressionConfig), msg->depth.data.end());
 
+            ROS_INFO("depth_data.size(): %i", depth_data.size());
+
             float depth_quant_a, depth_quant_b;
 
-            depth_quant_a = compressionConfig->depthParam[0];
-            depth_quant_b = compressionConfig->depthParam[1];
+            depth_quant_a = compressionConfig.depthParam[0];
+            depth_quant_b = compressionConfig.depthParam[1];
+            ROS_INFO("depth_quant_a: %f, depth_quant_b: %f", depth_quant_a, depth_quant_b);
 
             if (sensor_msgs::image_encodings::bitDepth(depth_encoding) == 32) {
+                ROS_INFO("sensor_msgs::image_encodings::bitDepth(depth_encoding) == 32");
                 cv::Mat depth_decompressed;
                 try {
                     depth_decompressed = cv::imdecode(depth_data, cv::IMREAD_UNCHANGED);
+                    ROS_INFO("depth_decompressed.rows: %i, depth_decompressed.cols: %i", depth_decompressed.rows, depth_decompressed.cols);
                 } catch(const std::exception& e) {
                     ROS_ERROR("cv::imdecode exception: %s", e.what());
                     return;
@@ -124,6 +134,7 @@ public:
                 size_t cols = depth_decompressed.cols;
 
                 if ((rows > 0) && (cols > 0)) {
+                    ROS_INFO("depth_decompressed.rows: %i, depth_decompressed.cols: %i", rows, cols);
                     cv_ptrD->image = cv::Mat(rows, cols, CV_32FC1);
 
                     cv::MatIterator_<float> it_depth_img = cv_ptrD->image.begin<float>(), it_depth_img_end = cv_ptrD->image.end<float>();
@@ -143,6 +154,7 @@ public:
                     return;
                 }
             } else {
+                ROS_INFO("sensor_msgs::image_encodings::bitDepth(depth_encoding) != 32");
                 try {
                     cv_ptrD->image = cv::imdecode(depth_data, cv::IMREAD_UNCHANGED);
                 } catch(const std::exception& e) {
@@ -152,22 +164,25 @@ public:
 
                 size_t rows = cv_ptrD->image.rows;
                 size_t cols = cv_ptrD->image.cols;
+                ROS_INFO("depth rows: %i, cols: %i", rows, cols);
 
                 if ((rows > 0) && (cols > 0)) {
                     msgD_decompressed = *(cv_ptrD->toImageMsg());
+                    ROS_INFO("msgD_decompressed.data.size(): %i", msgD_decompressed.data.size());
                 } else {
                     ROS_ERROR("Empty depth image with 16 bit depth");
                     return;
                 }
             }
+        } else {
+            ROS_ERROR("Empty depth image");
+            return;
         }
-
-        msgPose = msg->pose;
 
         orb_slam3_ros_wrapper::frame msg_decompressed;
         msg_decompressed.rgb = msgRGB_decompressed;
         msg_decompressed.depth = msgD_decompressed;
-        msg_decompressed.pose = msgPose;
+        msg_decompressed.pose = msg->pose;
 
         frame_decompressed_pub.publish(msg_decompressed);
 
