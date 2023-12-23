@@ -31,5 +31,5 @@ struct ConfigHeader
   float depthParam[2];
 };
 
-typedef boost::shared_ptr<const orb_slam3_ros_wrapper::frame> frame_msg_ptr;
-typedef boost::shared_ptr<const orb_slam3_ros_wrapper::frame_compressed> frame_compressed_msg_ptr;
+typedef boost::shared_ptr<orb_slam3_ros_wrapper::frame const> frame_msg_ptr;
+typedef boost::shared_ptr<orb_slam3_ros_wrapper::frame_compressed const> frame_compressed_msg_ptr;

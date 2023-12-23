@@ -1,5 +1,9 @@
 #include <frame_transmission/common.h>
 
+#include <message_filters/subscriber.h>
+#include <message_filters/time_synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
+
 class frame_compress_node
 {
 private:
@@ -19,9 +23,9 @@ public:
         int rgb_jpeg_quality = 95;
 
         sensor_msgs::CompressedImage msgRGB_compressed;
-        sensor_msgs::ImagePtr msgRGB = boost::make_shared<sensor_msgs::Image>(msg->rgb);
+        const sensor_msgs::ImageConstPtr msgRGB = boost::make_shared<sensor_msgs::Image>(msg->rgb);
 
-
+        ROS_INFO("rgb size: %i", msgRGB->data.size());
         msgRGB_compressed.header = msgRGB->header;
 
         msgRGB_compressed.format = msgRGB->encoding;
@@ -34,20 +38,24 @@ public:
         rgb_compression_params.emplace_back(cv::IMWRITE_JPEG_QUALITY);
         rgb_compression_params.emplace_back(rgb_jpeg_quality);
         msgRGB_compressed.format += "; jpeg compressed ";
+        ROS_INFO("rgb_bit_depth: %i", rgb_bit_depth);
         if ((rgb_bit_depth == 8) || (rgb_bit_depth == 16)) {
             std::string rgb_target_format;
             if (sensor_msgs::image_encodings::isColor(msgRGB->encoding)) {
-                rgb_target_format = "bgr8";
+                rgb_target_format = "bgra8";
             } else {
                 rgb_target_format = "mono8";
             }
             msgRGB_compressed.format += rgb_target_format;
+            ROS_INFO("rgb_target_format: %s", rgb_target_format.c_str());
 
             try {
+                ROS_INFO("try to convert");
                 cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvShare(msgRGB, rgb_target_format);
 
+                ROS_INFO("try to compress");
                 if (cv::imencode(".jpg", cv_ptr->image, msgRGB_compressed.data, rgb_compression_params)) {
-                    ROS_DEBUG("Successfull jpeg compression with %i quality.", rgb_jpeg_quality);
+                    ROS_INFO("Successfull jpeg compression with %i quality.", rgb_jpeg_quality);
                 } else {
                     ROS_ERROR("cv::imencode (jpeg) failed on input image");
                     return;
@@ -63,6 +71,7 @@ public:
             ROS_ERROR("Unsupported bit depth %i, must be 8 or 16", rgb_bit_depth);
             return;
         }
+        ROS_INFO("rgb_compressed size: %i", msgRGB_compressed.data.size());
 
         // depth png compression
         int depth_png_level = 4;
@@ -86,7 +95,7 @@ public:
 
         std::vector<int> depth_compression_params;
 
-        depth_compression_params.resize(3, 0);
+        depth_compression_params.resize(2, 0);
         depth_compression_params[0] = cv::IMWRITE_PNG_COMPRESSION;
         depth_compression_params[1] = depth_png_level;
         msgD_compressed.format += "; compressedDepth " + depth_format;
@@ -103,6 +112,7 @@ public:
             const cv::Mat& depth_img = cv_ptr->image;
             size_t rows = depth_img.rows;
             size_t cols = depth_img.cols;
+            ROS_INFO("depth size: %i", depth_img.total());
 
             if ((rows > 0) && (cols > 0)) {
                 cv::Mat inv_depth_img = cv::Mat(rows, cols, CV_16UC1);
@@ -128,7 +138,7 @@ public:
                     try {
                         if (cv::imencode(".png", inv_depth_img, depth_data, depth_compression_params)) {
                             float depth_c_ratio = (float)(cv_ptr->image.rows * cv_ptr->image.cols * cv_ptr->image.elemSize()) / (float)depth_data.size();
-                            ROS_DEBUG("Successfull png compression with level %i, compression ratio %f", depth_png_level, depth_c_ratio);
+                            ROS_INFO("Successfull png compression with level %i, compression ratio %f", depth_png_level, depth_c_ratio);
                         } else {
                             ROS_ERROR("cv::imencode (png) failed on input image");
                             return;
@@ -146,6 +156,7 @@ public:
                 return;
             }
         }
+        ROS_INFO("depth_compressed size: %i", depth_data.size());
 
         if (depth_data.size() > 0) {
             msgD_compressed.data.resize(sizeof(ConfigHeader));
