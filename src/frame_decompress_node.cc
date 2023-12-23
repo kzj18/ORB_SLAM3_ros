@@ -144,7 +144,7 @@ public:
                         if (*it_inv_depth_img) {
                             *it_depth_img = depth_quant_a / ((float)*it_inv_depth_img - depth_quant_b);
                         } else {
-                            *it_depth_img = std::numeric_limits<float>::quiet_NaN();
+                            *it_depth_img = 0.0f;
                         }
                     }
 
