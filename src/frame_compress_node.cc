@@ -1,37 +1,4 @@
-#include <limits>
-#include <string>
-#include <vector>
-
-#include <ros/ros.h>
-
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/CompressedImage.h>
-#include <geometry_msgs/Pose.h>
-
-#include <cv_bridge/cv_bridge.h>
-#include <opencv2/opencv.hpp>
-#include <opencv2/imgcodecs.hpp>
-
-#include <message_filters/subscriber.h>
-#include <message_filters/time_synchronizer.h>
-#include <message_filters/sync_policies/approximate_time.h>
-
-#include "orb_slam3_ros_wrapper/frame_compressed.h"
-
-// Compression formats
-enum compressionFormat
-{
-  UNDEFINED = -1, INV_DEPTH
-};
-
-// Compression configuration
-struct ConfigHeader
-{
-  // compression format
-  compressionFormat format;
-  // quantization parameters (used in depth image compression)
-  float depthParam[2];
-};
+#include <frame_transmission/common.h>
 
 class frame_compress_node
 {
@@ -47,14 +14,13 @@ public:
         frame_compressed_pub = node_handler->advertise<orb_slam3_ros_wrapper::frame_compressed>("/frames_compressed", 1);
     }
 
-    void frame_compress_callback(const sensor_msgs::ImageConstPtr& msgRGB,
-                                const sensor_msgs::ImageConstPtr& msgD,
-                                const geometry_msgs::PoseConstPtr& msgPose)
+    void frame_compress_callback(const frame_msg_ptr& msg)
     {
-        // rgb jpeg compression
         int rgb_jpeg_quality = 95;
 
         sensor_msgs::CompressedImage msgRGB_compressed;
+        sensor_msgs::ImagePtr msgRGB = boost::make_shared<sensor_msgs::Image>(msg->rgb);
+
 
         msgRGB_compressed.header = msgRGB->header;
 
@@ -84,14 +50,18 @@ public:
                     ROS_DEBUG("Successfull jpeg compression with %i quality.", rgb_jpeg_quality);
                 } else {
                     ROS_ERROR("cv::imencode (jpeg) failed on input image");
+                    return;
                 }
             } catch (cv_bridge::Exception& e) {
                 ROS_ERROR("cv_bridge exception: %s", e.what());
+                return;
             } catch (cv::Exception& e) {
                 ROS_ERROR("cv::Exception: %s", e.what());
+                return;
             }
         } else {
             ROS_ERROR("Unsupported bit depth %i, must be 8 or 16", rgb_bit_depth);
+            return;
         }
 
         // depth png compression
@@ -101,6 +71,7 @@ public:
         std::string depth_format = "png";
 
         sensor_msgs::CompressedImage msgD_compressed;
+        sensor_msgs::ImagePtr msgD = boost::make_shared<sensor_msgs::Image>(msg->depth);
 
         msgD_compressed.header = msgD->header;
         msgD_compressed.format = msgD->encoding;
@@ -166,21 +137,29 @@ public:
                         ROS_ERROR("cv::Exception: %s", e.what());
                         return;
                     }
+                } else {
+                    ROS_ERROR("Unsupported depth format %s, must be png", depth_format.c_str());
+                    return;
                 }
+            } else {
+                ROS_ERROR("Empty depth image");
+                return;
             }
         }
 
         if (depth_data.size() > 0) {
             msgD_compressed.data.resize(sizeof(ConfigHeader));
             memcpy(&msgD_compressed.data[0], &depth_config, sizeof(ConfigHeader));
-
             msgD_compressed.data.insert(msgD_compressed.data.end(), depth_data.begin(), depth_data.end());
+        } else {
+            ROS_ERROR("Empty depth image");
+            return;
         }
 
         orb_slam3_ros_wrapper::frame_compressed frame_msg_compressed;
         frame_msg_compressed.rgb = msgRGB_compressed;
         frame_msg_compressed.depth = msgD_compressed;
-        frame_msg_compressed.pose = *msgPose;
+        frame_msg_compressed.pose = msg->pose;
 
         frame_compressed_pub.publish(frame_msg_compressed);
 
@@ -188,25 +167,16 @@ public:
     }
 };
 
-
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
     ros::init(argc, argv, "frame_compress_node");
-
     ros::NodeHandle node_handler;
-    
+
     frame_compress_node frame_compress_node(&node_handler);
 
-    message_filters::Subscriber<sensor_msgs::Image> rgb_sub(node_handler, "/camera/rgb/image_raw", 1);
-    message_filters::Subscriber<sensor_msgs::Image> depth_sub(node_handler, "/camera/depth_registered/image_raw", 1);
-    message_filters::Subscriber<geometry_msgs::Pose> pose_sub(node_handler, "/orb_slam3/pose", 1);
-    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image, geometry_msgs::Pose> sync_pol;
-    message_filters::Synchronizer<sync_pol> sync(sync_pol(10), rgb_sub, depth_sub, pose_sub);
-    sync.registerCallback(boost::bind(&frame_compress_node::frame_compress_callback, &frame_compress_node, _1, _2, _3));
+    ros::Subscriber frame_sub = node_handler.subscribe("/frames", 1, &frame_compress_node::frame_compress_callback, &frame_compress_node);
 
     ros::spin();
-
-    ros::shutdown();
 
     return 0;
 }
