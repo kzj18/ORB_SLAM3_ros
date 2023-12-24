@@ -6,6 +6,9 @@
     <!-- Run camera driver -->
     <include file="$(find orb_slam3_ros_wrapper)/launch/run_kinect_base.launch"/>
 
+    <!-- Launch ground_aligner node -->
+	<node pkg="orb_slam3_ros_wrapper" name="ground_aligner" type="ground_aligner.py" output="screen" args="--config $(find orb_slam3_ros_wrapper)/config/kinect_config.yaml"/>
+
     <!-- Launch ORB_SLAM3 -->
     <include file="$(find orb_slam3_ros_wrapper)/launch/orb_slam3.launch">
         <arg name="mode" value="$(arg mode)"/>

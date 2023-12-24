@@ -1,7 +1,8 @@
-#!/usr/bin/env /usr/bin/python3
+#!/usr/bin/env /home/airsurf/miniconda3/envs/ROS/bin/python
 # -*- coding: utf-8 -*-
 
 import os
+
 import numpy as np
 import rospy
 import cv2
