@@ -1,8 +1,8 @@
 #include <frame_transmission/common.h>
 
-#include <message_filters/subscriber.h>
-#include <message_filters/time_synchronizer.h>
-#include <message_filters/sync_policies/approximate_time.h>
+#include <geometry_msgs/Quaternion.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 class frame_compress_node
 {
@@ -11,15 +11,45 @@ private:
 
     ros::Publisher frame_compressed_pub;
 
+    tf2::Transform align_transform;
+
+    bool is_aligned = false;
+
 public:
     frame_compress_node(ros::NodeHandle* node_handler) 
     : node_handler(node_handler)
     {
+        align_transform.setIdentity();
         frame_compressed_pub = node_handler->advertise<orb_slam3_ros_wrapper::frame_compressed>("/frames_compressed", 1);
     }
 
-    void frame_compress_callback(const frame_msg_ptr& msg)
+    void frame_align_callback(const geometry_msgs::QuaternionConstPtr& msg)
     {
+        if (!is_aligned) {
+            double roll, pitch, yaw;
+            align_transform.getBasis().getRPY(roll, pitch, yaw);
+            tf2::Vector3 origin = align_transform.getOrigin();
+            ROS_INFO("frame align old: roll: %f, pitch: %f, yaw: %f, x: %f, y: %f, z: %f", roll, pitch, yaw, origin.getX(), origin.getY(), origin.getZ());
+            tf2::Quaternion q;
+            tf2::convert(*msg, q);
+            align_transform.setRotation(q);
+            // origin.setY(origin.getY() + 2);
+            // align_transform.setOrigin(origin);
+            align_transform = align_transform.inverse();
+            align_transform.getBasis().getRPY(roll, pitch, yaw);
+            origin = align_transform.getOrigin();
+            ROS_INFO("frame align new: roll: %f, pitch: %f, yaw: %f, x: %f, y: %f, z: %f", roll, pitch, yaw, origin.getX(), origin.getY(), origin.getZ());
+            is_aligned = true;
+            ROS_INFO("frame aligned");
+        }
+        return;
+    }
+
+    void frame_compress_callback(const frame_msg_ptr& msg)
+    {   
+        if (!is_aligned) {
+            return;
+        }
         int rgb_jpeg_quality = 95;
 
         sensor_msgs::CompressedImage msgRGB_compressed;
@@ -167,10 +197,25 @@ public:
             return;
         }
 
+        geometry_msgs::Pose aligned_pose;
+        tf2::Transform pose_transform;
+        tf2::convert(msg->pose, pose_transform);
+        double roll, pitch, yaw;
+        pose_transform.getBasis().getRPY(roll, pitch, yaw);
+        tf2::Vector3 origin = pose_transform.getOrigin();
+        ROS_INFO("frame pose old: roll: %f, pitch: %f, yaw: %f, x: %f, y: %f, z: %f", roll, pitch, yaw, origin.getX(), origin.getY(), origin.getZ());
+        pose_transform = align_transform * pose_transform;
+        pose_transform.getBasis().getRPY(roll, pitch, yaw);
+        origin = pose_transform.getOrigin();
+        ROS_INFO("frame pose new: roll: %f, pitch: %f, yaw: %f, x: %f, y: %f, z: %f", roll, pitch, yaw, origin.getX(), origin.getY(), origin.getZ());
+        tf2::toMsg(pose_transform, aligned_pose);
+        
+
         orb_slam3_ros_wrapper::frame_compressed frame_msg_compressed;
         frame_msg_compressed.rgb = msgRGB_compressed;
         frame_msg_compressed.depth = msgD_compressed;
-        frame_msg_compressed.pose = msg->pose;
+        frame_msg_compressed.pose = aligned_pose;
+        // frame_msg_compressed.pose = msg->pose;
 
         frame_compressed_pub.publish(frame_msg_compressed);
 
@@ -181,11 +226,13 @@ public:
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "frame_compress_node");
+    ROS_INFO("frame_compress_node started");
     ros::NodeHandle node_handler;
 
     frame_compress_node frame_compress_node(&node_handler);
 
     ros::Subscriber frame_sub = node_handler.subscribe("/frames", 1, &frame_compress_node::frame_compress_callback, &frame_compress_node);
+    ros::Subscriber align_msg_sub = node_handler.subscribe("/ground_rotation_quaternion", 1, &frame_compress_node::frame_align_callback, &frame_compress_node);
 
     ros::spin();
 

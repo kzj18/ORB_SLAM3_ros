@@ -3,13 +3,13 @@
 
 import os
 import argparse
-from concurrent.futures import ThreadPoolExecutor
 
 import yaml
 import numpy as np
 import open3d as o3d
 
 import rospy
+import tf
 from std_msgs.msg import Float32
 from geometry_msgs.msg import Quaternion
 
@@ -19,11 +19,11 @@ class GroundAligner:
     
     def __init__(self, config_file_path:str) -> None:
         assert os.path.exists(config_file_path), "config file does not exist"
-        rospy.loginfo("ground_aligner Node: starting", os.getpid())
         rospy.init_node("ground_aligner", anonymous=True)
+        rospy.loginfo(f"ground_aligner Node: starting {os.getpid()}")
         
         self.__is_aligned = False
-        self.__rotation_matrix = None
+        self.__rotation_quaternion = None
         self.__height = None
         self.__delta = 1e-3
         with open(config_file_path, "r") as f:
@@ -34,19 +34,13 @@ class GroundAligner:
             self.__cy = float(config_dict["Camera.cy"])
             self.__depth_factor = float(config_dict["DepthMapFactor"])
         
-        rospy.Subscriber("/frames", frame, self.callback)
-        self.__rotation_matrix_pub = rospy.Publisher("/rotation_matrix", Quaternion, queue_size=10)
-        self.__height_pub = rospy.Publisher("/height", Float32, queue_size=10)
+        rospy.Subscriber("/frames", frame, self.callback, queue_size=1)
+        self.__rotation_matrix_pub = rospy.Publisher("/ground_rotation_quaternion", Quaternion, queue_size=10)
+        self.__height_pub = rospy.Publisher("/ground_height", Float32, queue_size=10)
         
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            executor.submit(self.__publish)
-        
-        rospy.spin()
-        
-    def __publish(self):
         while not rospy.is_shutdown():
             if self.__is_aligned:
-                self.__rotation_matrix_pub.publish(self.__rotation_matrix)
+                self.__rotation_matrix_pub.publish(self.__rotation_quaternion)
                 self.__height_pub.publish(self.__height)
             rospy.sleep(0.1)
     
@@ -123,18 +117,28 @@ class GroundAligner:
                 [cross_result[2], 0, -cross_result[0]],
                 [-cross_result[1], cross_result[0], 0]
             ])
-            rotation_matrix = np.eye(3) + v_matrix + np.matmul(v_matrix, v_matrix) * (1 - dot_result) / (
-            cross_result_normalize ** 2)
+            rotation_matrix = np.eye(3) + v_matrix + np.matmul(v_matrix, v_matrix) * (1 - dot_result) / (cross_result_normalize ** 2)
+            # yaw = np.pi / 2
+            # roll = 0
+            # pitch = 0
+            # from scipy.spatial.transform import Rotation as R
+            # rotation_matrix = R.from_euler("xyz", [roll, pitch, yaw]).as_matrix()
+            
+            self.__rotation_quaternion = Quaternion()
+            transform_matrix = np.eye(4)
+            transform_matrix[:3, :3] = rotation_matrix
+            rospy.loginfo(f"transform matrix:\n{transform_matrix}")
+            rotation_quaternion = tf.transformations.quaternion_from_matrix(transform_matrix)
+            self.__rotation_quaternion.x = rotation_quaternion[0]
+            self.__rotation_quaternion.y = rotation_quaternion[1]
+            self.__rotation_quaternion.z = rotation_quaternion[2]
+            self.__rotation_quaternion.w = rotation_quaternion[3]
+            rospy.loginfo(f"transform quaternion: {rotation_quaternion}")
+            rospy.loginfo(f"transform matrix from quaternion:\n{tf.transformations.quaternion_matrix(rotation_quaternion)}")
 
             inlier_cloud.rotate(rotation_matrix, center=origin)
             outlier_cloud.rotate(rotation_matrix, center=origin)
             normal_line.rotate(rotation_matrix, center=origin)
-            self.__rotation_matrix = Quaternion()
-            self.__rotation_matrix.x = rotation_matrix[0, 0]
-            self.__rotation_matrix.y = rotation_matrix[0, 1]
-            self.__rotation_matrix.z = rotation_matrix[0, 2]
-            self.__rotation_matrix.w = rotation_matrix[1, 1]
-            
             x_line = o3d.geometry.LineSet()
             x_line.points = o3d.utility.Vector3dVector(np.array([[0, 0, 0], [1, 0, 0]]))
             x_line.lines = o3d.utility.Vector2iVector(np.array([[0, 1]]))
