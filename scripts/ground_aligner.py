@@ -96,12 +96,28 @@ class GroundAligner:
             pcd = o3d.geometry.PointCloud()
             pcd.points = o3d.utility.Vector3dVector(pc)
             pcd.colors = o3d.utility.Vector3dVector(pc_color / 255)
-            plane_model, inliers = pcd.segment_plane(distance_threshold=0.01, ransac_n=3, num_iterations=1000)
-            [a, b, c, d] = plane_model
             origin = [0, 0, 0]
-            normal = np.array([a, b, c])
-            normal_length = np.linalg.norm(normal)
-            height = (a * origin[0] + b * origin[1] + c * origin[2] + d) / normal_length
+            axis_pcd = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5, origin=origin)
+            align_count = 0
+            inlier_cloud_list = list()
+            while True:
+                plane_model, inliers = pcd.segment_plane(distance_threshold=0.01, ransac_n=3, num_iterations=1000)
+                [a, b, c, d] = plane_model
+                inlier_cloud = pcd.select_by_index(inliers)
+                outlier_cloud = pcd.select_by_index(inliers, invert=True)
+                normal = np.array([a, b, c])
+                normal_length = np.linalg.norm(normal)
+                height = (a * origin[0] + b * origin[1] + c * origin[2] + d) / normal_length
+                if (b > max(abs(a), abs(c))) and (height <= 0):
+                    inlier_cloud.paint_uniform_color([1.0, 0, 0])
+                    inlier_cloud_list.append(inlier_cloud)
+                    break
+                else:
+                    align_count += 1
+                    pcd = outlier_cloud
+                    inlier_cloud.paint_uniform_color([0, 1 - np.power(0.5, align_count), 1 - np.power(0.5, align_count)])
+                    inlier_cloud_list.append(inlier_cloud)
+                    rospy.loginfo(f"align count: {align_count}, a: {a}, b: {b}, c: {c}, d: {d}, height: {height}")
             if height == 0:
                 target_normal = [0, -1, 0]
             else:
@@ -112,15 +128,11 @@ class GroundAligner:
             z_foot = origin[2] - c * height / normal_length
 
             rospy.loginfo(f"a: {a}, b: {b}, c: {c}, d: {d}, height: {height}, abs height: {self.__height}, x_foot: {x_foot}, y_foot: {y_foot}, z_foot: {z_foot}")
-            inlier_cloud = pcd.select_by_index(inliers)
-            inlier_cloud.paint_uniform_color([1.0, 0, 0])
-            outlier_cloud = pcd.select_by_index(inliers, invert=True)
             normal_line = o3d.geometry.LineSet()
             normal_line.points = o3d.utility.Vector3dVector([origin, [x_foot, y_foot, z_foot]])
             normal_line.lines = o3d.utility.Vector2iVector([[0, 1]])
             normal_line.colors = o3d.utility.Vector3dVector([[0.5, 0.5, 0.5], [0.5, 0.5, 0.5]])
-            axis_pcd = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5, origin=origin)
-            o3d.visualization.draw_geometries([outlier_cloud, inlier_cloud, normal_line] +[axis_pcd])
+            o3d.visualization.draw_geometries(inlier_cloud_list + [outlier_cloud, normal_line] +[axis_pcd])
 
             normal = normal / normal_length
             cross_result = np.cross(normal, target_normal)
@@ -150,10 +162,12 @@ class GroundAligner:
             rospy.loginfo(f"transform quaternion: {rotation_quaternion}")
             rospy.loginfo(f"transform matrix from quaternion:\n{tf.transformations.quaternion_matrix(rotation_quaternion)}")
 
-            inlier_cloud.rotate(rotation_matrix, center=origin)
+            for inlier_cloud in inlier_cloud_list:
+                inlier_cloud.rotate(rotation_matrix, center=origin)
+                
             outlier_cloud.rotate(rotation_matrix, center=origin)
             normal_line.rotate(rotation_matrix, center=origin)
-            o3d.visualization.draw_geometries([inlier_cloud, outlier_cloud] +[axis_pcd])
+            o3d.visualization.draw_geometries(inlier_cloud_list + [outlier_cloud] +[axis_pcd])
             self.__is_aligned = True
     
 if __name__ == "__main__":
