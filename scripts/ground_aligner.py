@@ -33,6 +33,7 @@ class GroundAligner:
             self.__cx = float(config_dict["Camera.cx"])
             self.__cy = float(config_dict["Camera.cy"])
             self.__depth_factor = float(config_dict["DepthMapFactor"])
+        self.__useful_depth = 1.5 / self.__depth_factor
         
         rospy.Subscriber("/frames", frame, self.callback, queue_size=1)
         self.__rotation_matrix_pub = rospy.Publisher("/ground_rotation_quaternion", Quaternion, queue_size=10)
@@ -69,12 +70,24 @@ class GroundAligner:
             z = np.where(valid, depth_np, np.nan)
             x = np.where(valid, z * (c - self.__cx) / self.__fx, np.nan)
             y = np.where(valid, z * (r - self.__cy) / self.__fy, np.nan)
+            print("original z:", z.shape)
             z = z[valid]
             x = x[valid]
             y = y[valid]
+            print("valid z:", z.shape)
             channel_r = rgb_np[..., 0][valid]
             channel_g = rgb_np[..., 1][valid]
             channel_b = rgb_np[..., 2][valid]
+            
+            useful = np.where(np.square(x) + np.square(y) + np.square(z) > np.square(self.__useful_depth))
+            z = z[useful]
+            x = x[useful]
+            y = y[useful]
+            print("useful z:", z.shape)
+            channel_r = channel_r[useful]
+            channel_g = channel_g[useful]
+            channel_b = channel_b[useful]
+            
             pc = np.dstack((x, y, z))
             pc_color = np.dstack((channel_r, channel_g, channel_b))
             pc = pc.reshape(-1, 3)
