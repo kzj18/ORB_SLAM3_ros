@@ -1,4 +1,4 @@
-#!/usr/bin/env /home/airsurf/miniconda3/envs/ROS/bin/python
+#!/usr/bin/env /usr/bin/python3
 # -*- coding: utf-8 -*-
 
 import os
@@ -103,23 +103,24 @@ class GroundAligner:
             normal_length = np.linalg.norm(normal)
             height = (a * origin[0] + b * origin[1] + c * origin[2] + d) / normal_length
             if height == 0:
-                target_normal = [0, 0, 1]
+                target_normal = [0, -1, 0]
             else:
-                target_normal = [0, 0, np.sign(height)]
+                target_normal = [0, -np.sign(height), 0]
             self.__height = abs(height)
             x_foot = origin[0] - a * height / normal_length
             y_foot = origin[1] - b * height / normal_length
             z_foot = origin[2] - c * height / normal_length
 
-            rospy.loginfo(f"a: {a}, b: {b}, c: {c}, d: {d}, height: {self.__height}, x_foot: {x_foot}, y_foot: {y_foot}, z_foot: {z_foot}")
+            rospy.loginfo(f"a: {a}, b: {b}, c: {c}, d: {d}, height: {height}, abs height: {self.__height}, x_foot: {x_foot}, y_foot: {y_foot}, z_foot: {z_foot}")
             inlier_cloud = pcd.select_by_index(inliers)
             inlier_cloud.paint_uniform_color([1.0, 0, 0])
             outlier_cloud = pcd.select_by_index(inliers, invert=True)
             normal_line = o3d.geometry.LineSet()
             normal_line.points = o3d.utility.Vector3dVector([origin, [x_foot, y_foot, z_foot]])
             normal_line.lines = o3d.utility.Vector2iVector([[0, 1]])
-            normal_line.colors = o3d.utility.Vector3dVector([[1, 0, 0], [1, 0, 0]])
-            o3d.visualization.draw_geometries([outlier_cloud, inlier_cloud, normal_line])
+            normal_line.colors = o3d.utility.Vector3dVector([[0.5, 0.5, 0.5], [0.5, 0.5, 0.5]])
+            axis_pcd = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.5, origin=origin)
+            o3d.visualization.draw_geometries([outlier_cloud, inlier_cloud, normal_line] +[axis_pcd])
 
             normal = normal / normal_length
             cross_result = np.cross(normal, target_normal)
@@ -152,19 +153,7 @@ class GroundAligner:
             inlier_cloud.rotate(rotation_matrix, center=origin)
             outlier_cloud.rotate(rotation_matrix, center=origin)
             normal_line.rotate(rotation_matrix, center=origin)
-            x_line = o3d.geometry.LineSet()
-            x_line.points = o3d.utility.Vector3dVector(np.array([[0, 0, 0], [1, 0, 0]]))
-            x_line.lines = o3d.utility.Vector2iVector(np.array([[0, 1]]))
-            x_line.colors = o3d.utility.Vector3dVector(np.array([[1, 0, 0], [1, 0, 0]]))
-            y_line = o3d.geometry.LineSet()
-            y_line.points = o3d.utility.Vector3dVector(np.array([[0, 0, 0], [0, 1, 0]]))
-            y_line.lines = o3d.utility.Vector2iVector(np.array([[0, 1]]))
-            y_line.colors = o3d.utility.Vector3dVector(np.array([[0, 1, 0], [0, 1, 0]]))
-            z_line = o3d.geometry.LineSet()
-            z_line.points = o3d.utility.Vector3dVector(np.array([[0, 0, 0], [0, 0, 1]]))
-            z_line.lines = o3d.utility.Vector2iVector(np.array([[0, 1]]))
-            z_line.colors = o3d.utility.Vector3dVector(np.array([[0, 0, 1], [0, 0, 1]]))
-            o3d.visualization.draw_geometries([inlier_cloud, outlier_cloud, x_line, y_line, z_line])
+            o3d.visualization.draw_geometries([inlier_cloud, outlier_cloud] +[axis_pcd])
             self.__is_aligned = True
     
 if __name__ == "__main__":
