@@ -1,4 +1,4 @@
-#!/usr/bin/env /home/airsurf/miniconda3/envs/ROS/bin/python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import os
@@ -22,11 +22,13 @@ class FramesVisualizer:
 
     def callback(self, msg:frame):
         rgb_np = np.frombuffer(msg.rgb.data, dtype=np.uint8)
-        rgb_np = rgb_np.reshape(msg.rgb.height, msg.rgb.width, 4)
+        rgb_np = rgb_np.reshape(msg.rgb.height, msg.rgb.width, msg.rgb.step // msg.rgb.width)
         rgb_np = rgb_np[..., :3]
         rgb_np = rgb_np[..., ::-1]
-
-        depth_np = np.frombuffer(msg.depth.data, dtype=np.float32)
+        
+        depth_type = np.float32 if msg.depth.encoding == "32FC1" else np.uint16
+        depth_factor = 1000.0 if msg.depth.encoding == "32FC1" else 1.0
+        depth_np:np.ndarray = np.float32(np.frombuffer(msg.depth.data, dtype=depth_type)) / depth_factor
         depth_np = depth_np.reshape(msg.depth.height, msg.depth.width)
         
         depth_viz = imgviz.depth2rgb(depth_np)[..., ::-1]

@@ -72,7 +72,14 @@ public:
         if ((rgb_bit_depth == 8) || (rgb_bit_depth == 16)) {
             std::string rgb_target_format;
             if (sensor_msgs::image_encodings::isColor(msgRGB->encoding)) {
-                rgb_target_format = "bgra8";
+                if (msgRGB->step == msgRGB->width * 3) {
+                    rgb_target_format = "rgb8";
+                } else if (msgRGB->step == msgRGB->width * 4) {
+                    rgb_target_format = "bgra8";
+                } else {
+                    ROS_ERROR("Unsupported step size: %i", msgRGB->step);
+                    return;
+                }
             } else {
                 rgb_target_format = "mono8";
             }
@@ -184,6 +191,49 @@ public:
             } else {
                 ROS_ERROR("Empty depth image");
                 return;
+            }
+        } else if ((depth_bit_depth == 16) && (num_channels_depth == 1)) {
+            cv_bridge::CvImagePtr cv_ptr;
+            try {
+                cv_ptr = cv_bridge::toCvCopy(msgD);
+            } catch (cv_bridge::Exception& e) {
+                ROS_ERROR("cv_bridge exception: %s", e.what());
+                return;
+            }
+
+            const cv::Mat& depth_img = cv_ptr->image;
+            size_t rows = depth_img.rows;
+            size_t cols = depth_img.cols;
+            ROS_INFO("depth size: %i", depth_img.total());
+
+            if ((rows > 0) && (cols > 0)) {
+                unsigned short depth_max_ushort = static_cast<unsigned short>(depth_max * 1000.0f);
+
+                cv::MatIterator_<unsigned short> it_depth_img = cv_ptr->image.begin<unsigned short>(), it_depth_img_end = cv_ptr->image.end<unsigned short>();
+
+                for (; it_depth_img != it_depth_img_end; ++it_depth_img) {
+                    if (*it_depth_img > depth_max_ushort) {
+                        *it_depth_img = 0;
+                    }
+                }
+
+                if (depth_format == "png") {
+                    try {
+                        if (cv::imencode(".png", depth_img, depth_data, depth_compression_params)) {
+                            float depth_c_ratio = (float)(cv_ptr->image.rows * cv_ptr->image.cols * cv_ptr->image.elemSize()) / (float)depth_data.size();
+                            ROS_INFO("Successfull png compression with level %i, compression ratio %f", depth_png_level, depth_c_ratio);
+                        } else {
+                            ROS_ERROR("cv::imencode (png) failed on input image");
+                            return;
+                        }
+                    } catch (cv::Exception& e) {
+                        ROS_ERROR("cv::Exception: %s", e.what());
+                        return;
+                    }
+                } else {
+                    ROS_ERROR("Unsupported depth format %s, must be png", depth_format.c_str());
+                    return;
+                }
             }
         }
         ROS_INFO("depth_compressed size: %i", depth_data.size());
