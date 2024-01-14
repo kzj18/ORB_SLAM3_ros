@@ -17,7 +17,7 @@ class FramesVisualizer:
         print("Waiting for first frame...")
 
         rospy.init_node("frames_visualizer", anonymous=True)
-        rospy.Subscriber("/frames_decompressed", frame, self.callback)
+        rospy.Subscriber("/frames", frame, self.callback)
         rospy.spin()
 
     def callback(self, msg:frame):
