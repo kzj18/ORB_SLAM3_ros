@@ -50,7 +50,6 @@ class Tester:
                 break
             
         Image.fromarray(self.__map).save(os.path.join(WORKSPACE, 'map.pgm'))
-        
             
     def __redraw_map(self) -> None:
         show_map = self.__map.copy()
@@ -108,4 +107,3 @@ class Tester:
     
 if __name__ == '__main__':
     tester = Tester(os.path.join(WORKSPACE, 'scans.yaml'), os.path.join(WORKSPACE, 'scans.pgm'))
-    # tester = Tester("/home/kzj18/Projects/GUOQIANG_INSTITUTE_CUP_2023/plan/P008599-B0001-F0007/P008599-B0001-F0007.yaml", "/home/kzj18/Projects/GUOQIANG_INSTITUTE_CUP_2023/plan/P008599-B0001-F0007/P008599-B0001-F0007.pgm")
